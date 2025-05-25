@@ -23,10 +23,3 @@ export const sendControlCommand = async (command: ControlCommand): Promise<boole
   await new Promise(resolve => setTimeout(resolve, 300));
   return true;
 };
-
-export const fetchImageGallery = async (): Promise<string[]> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return Array.from({ length: 5 }, (_, i) => 
-    `https://picsum.photos/200/300?random=${Math.random()}&index=${i}`
-  );
-};

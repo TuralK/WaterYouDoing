@@ -13,7 +13,6 @@ import {PermissionsAndroid} from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { configureNotifications } from './src/services/notificationService';
 import SettingsScreen from './src/screens/SettingsScreen';
-import { SettingsProvider } from './src/context/SettingsContext';
 import { ControlsProvider } from './src/context/ControlsContext';
 import AutomationHandler from './src/components/AutomationHandler';
 import CameraScreen from './src/screens/CameraScreen';
@@ -148,7 +147,6 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SettingsProvider>
         <ControlsProvider>
           <AutomationHandler />
           <WebSocketProvider>
@@ -156,7 +154,6 @@ export default function App() {
             <MainAppContent />
           </WebSocketProvider>
         </ControlsProvider>
-      </SettingsProvider>
     </SafeAreaProvider>
   );
 }

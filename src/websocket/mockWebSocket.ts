@@ -11,7 +11,7 @@ const MockWebSocket = () => {
         ? `Low soil moisture (${Math.floor(Math.random() * 20)}%) detected!` 
         : `Temperature alert: ${Math.floor(20 + Math.random() * 20)}°C`,
       type: Math.random() > 0.7 ? 'alert' : 'warning',
-      timestamp: new Date().toISOString(),
+      timestamp: Date.now(),
     };
 
     listeners.forEach(cb => cb({

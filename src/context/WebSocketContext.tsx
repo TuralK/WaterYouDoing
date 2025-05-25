@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import PushNotification from 'react-native-push-notification';
 import { showLocalNotification } from '../services/notificationService';
-import { SettingsContext } from '../context/SettingsContext';
 
 type WebSocketContextType = {
   sendMessage: (action: string, data: any) => void;
@@ -16,19 +15,30 @@ const WebSocketContext = createContext<WebSocketContextType>({
 });
 
 export const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const { settings, saveSettings } = useContext(SettingsContext);
 
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [sensorData, setSensorData] = useState<any>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
+  const notificationCountRef = useRef(0);
+  const MAX_NOTIFICATIONS = 50;
+
+  useEffect(() => {
+    if (notifications.length > notificationCountRef.current) {
+      const newNotification = notifications[notifications.length - 1];
+      showLocalNotification('Plant Alert', newNotification.message);
+      PushNotification.setApplicationIconBadgeNumber(notifications.length);
+    }
+    notificationCountRef.current = notifications.length;
+  }, [notifications.length]);
+
   useEffect(() => {
     const handleNotifications = () => {
       if (notifications.length > 0) {
         const lastNotification = notifications[notifications.length - 1];
         showLocalNotification('Plant Alert', lastNotification.message);
-        setNotifications(prev => [lastNotification]);
+        // setNotifications(prev => [lastNotification]);
         PushNotification.setApplicationIconBadgeNumber(1);
       }
     };
@@ -66,7 +76,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
               type: 'info',
               message: message.message,
               timestamp: Date.now()
-            }]);
+            }].slice(-MAX_NOTIFICATIONS));
           } else if (message.sensorData) {
             setSensorData(message.sensorData);
           }

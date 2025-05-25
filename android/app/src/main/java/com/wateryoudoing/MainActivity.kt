@@ -23,7 +23,7 @@ class MainActivity : ReactActivity() {
       }
 
       val token = task.result
-      val msg = "FCM token: $token"
+      // val msg = "FCM token: $token"
       Log.d(TAG, msg)
       Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }

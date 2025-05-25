@@ -8,20 +8,6 @@ const CameraScreen = () => {
   // const [cameraRef, setCameraRef] = useState<RNCamera | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA
-        );
-        setHasCameraPermission(granted === PermissionsAndroid.RESULTS.GRANTED);
-      } else {
-        setHasCameraPermission(true);
-      }
-    })();
-  }, []);
 
   // const takePicture = async () => {
   //   if (cameraRef) {
@@ -47,14 +33,6 @@ const CameraScreen = () => {
         }
     });
   };
-
-  if (!hasCameraPermission) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>Camera permission required!</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>

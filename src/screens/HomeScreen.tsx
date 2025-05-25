@@ -1,17 +1,36 @@
 // HomeScreen.tsx (updated)
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { ScrollView, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import SensorCard from '../components/SensorCard';
 import { fetchSensorData } from '../api/mockApi';
 import { SensorData } from '../types/types';
 import ControlsComponent from '../components/ControlsComponent';
 import { useWebSocket } from '../context/WebSocketContext';
+import { Sensor } from '../types/models';
+import { sensorApi } from '../api/sensor';
+import { navigate } from '../navigation/navigationRef';
 
 const HomeScreen = () => {
   const [sensorData, setSensorData] = useState<SensorData>();
   const [refreshing, setRefreshing] = useState(false);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
   const { notifications } = useWebSocket();
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await sensorApi.getSensors();
+        setSensors(response);
+      } catch (error) {
+        console.error('Error fetching sensor data:', error);
+      } finally {
+        console.log('Sensor data fetch completed');
+      }
+    };
+    fetchData();
+  }, []);
+
 
   const loadData = async () => {
     setRefreshing(true);

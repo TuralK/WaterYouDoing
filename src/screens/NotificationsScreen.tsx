@@ -19,7 +19,7 @@ const NotificationsScreen = () => {
     <FlatList
       data={notifications}
       renderItem={NotificationItem}
-      keyExtractor={(item) => item?.id || Math.random().toString()}
+      keyExtractor={(item) => item?.id}
       contentContainerStyle={styles.container}
       ListEmptyComponent={<Text>No notifications yet</Text>}
     />
