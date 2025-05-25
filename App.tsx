@@ -1,131 +1,191 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect } from 'react';
+import PushNotification from 'react-native-push-notification';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { WebSocketProvider } from './src/context/WebSocketContext';
+import HomeScreen from './src/screens/HomeScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { StyleSheet, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { navigationRef } from './src/navigation/navigationRef';
+import {PermissionsAndroid} from 'react-native';
+import messaging from '@react-native-firebase/messaging';
+import { configureNotifications } from './src/services/notificationService';
+import SettingsScreen from './src/screens/SettingsScreen';
+import { SettingsProvider } from './src/context/SettingsContext';
+import { ControlsProvider } from './src/context/ControlsContext';
+import AutomationHandler from './src/components/AutomationHandler';
+import CameraScreen from './src/screens/CameraScreen';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'; // Keep these imports
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const Tab = createBottomTabNavigator();
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+// New component to encapsulate the navigation and consume safe area insets
+function MainAppContent() {
+  const insets = useSafeAreaInsets(); // <--- Call useSafeAreaInsets() here!
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
+    <NavigationContainer ref={navigationRef}>
+      <LinearGradient
+        colors={['#E8F5E9', '#F1F8E9']}
+        style={styles.background}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            tabBarIcon: ({ focused, color, size }) => {
+              const icons = {
+                Home: 'leaf',
+                Notifications: 'notifications-outline',
+                Settings: 'settings',
+                Camera: 'camera',
+              } as const;
+
+              const iconName = icons[route.name as keyof typeof icons] || 'help-circle-outline';
+
+              return (
+                <View style={focused ? styles.activeTab : null}>
+                  <Ionicons
+                    name={iconName}
+                    size={focused ? 28 : 24}
+                    color={focused ? '#00C853' : '#757575'}
+                  />
+                </View>
+              );
+            },
+            tabBarActiveTintColor: '#00C853',
+            tabBarInactiveTintColor: '#757575',
+            tabBarStyle: {
+              ...styles.tabBar,
+              // Apply bottom inset here
+              paddingBottom: insets.bottom > 0 ? insets.bottom + 4 : 4, // Add 4 if insets.bottom is present
+              height: 60 + insets.bottom, // Adjust height
+            },
+            tabBarLabelStyle: {
+              fontSize: 12,
+              marginBottom: 4,
+              fontWeight: '500',
+            },
+            headerStyle: styles.header,
+            headerTitleStyle: styles.headerTitle,
+            headerBackground: () => (
+              <LinearGradient
+                colors={['#1B5E20', '#2E7D32']}
+                style={StyleSheet.absoluteFill}
+              />
+            ),
+          })}
+        >
+          <Tab.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ title: 'Plant Dashboard' }}
+          />
+          <Tab.Screen
+            name="Notifications"
+            component={NotificationsScreen}
+            options={{
+              title: 'Alerts',
+              tabBarBadgeStyle: { backgroundColor: '#D32F2F' }
+            }}
+          />
+          <Tab.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{
+              title: 'Settings',
+              tabBarIcon: ({ focused, color, size }) => (
+                <Ionicons
+                  name={focused ? 'settings' : 'settings-outline'}
+                  size={focused ? 28 : 24}
+                  color={focused ? '#00C853' : '#757575'}
+                />
+              )
+            }}
+          />
+          <Tab.Screen
+            name="Camera"
+            component={CameraScreen}
+            options={{
+              title: 'Plant Cam',
+              tabBarIcon: ({ focused, color, size }) => (
+                <Ionicons
+                  name={focused ? 'camera' : 'camera-outline'}
+                  size={focused ? 28 : 24}
+                  color={focused ? '#00C853' : '#757575'}
+                />
+              )
+            }}
+          />
+        </Tab.Navigator>
+      </LinearGradient>
+    </NavigationContainer>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+export default function App() {
+  useEffect(() => {
+    configureNotifications();
+    PushNotification.setApplicationIconBadgeNumber(0);
+  }, []);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  useEffect(() => {
+    messaging()
+      .getToken()
+      .then(token => {
+        console.log('FCM token:', token)
+      })
+      .catch(err => console.warn('FCM token error', err))
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the recommendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
+    return messaging().onTokenRefresh(newToken => {
+      console.log('FCM token refreshed:', newToken)
+    })
+  }, [])
 
   return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </View>
+    <SafeAreaProvider>
+      <SettingsProvider>
+        <ControlsProvider>
+          <AutomationHandler />
+          <WebSocketProvider>
+            {/* Render the new component here */}
+            <MainAppContent />
+          </WebSocketProvider>
+        </ControlsProvider>
+      </SettingsProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  background: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 24,
+  tabBar: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    elevation: 8,
+    shadowColor: '#1B5E20',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  header: {
+    elevation: 4,
+    shadowColor: '#00000030',
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 20,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  activeTab: {
+    paddingBottom: 6,
+    marginBottom: -6,
   },
 });
-
-export default App;
