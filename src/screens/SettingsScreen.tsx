@@ -16,7 +16,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { adjustmentApi } from '../api/adjustment';
 import { Adjustment } from '../types/models';
 import { useIsFocused } from '@react-navigation/native';
-import { CommonActions } from '@react-navigation/native';
 
 
 const SettingsScreen = () => {
@@ -41,7 +40,6 @@ const SettingsScreen = () => {
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
-        // Set isRefreshing to true when refresh is initiated
         setIsRefreshing(true); 
         try {
             const response: Adjustment[] = await adjustmentApi.getAdjustments();
@@ -79,14 +77,14 @@ const SettingsScreen = () => {
     }, []);
 
     // Fetch data when the screen focuses
-    useFocusEffect(
-        useCallback(() => {
-            fetchData();
-            return () => {
-                // Optional cleanup if needed when screen loses focus
-            };
-        }, [fetchData])
-    );
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         fetchData();
+    //     }, [fetchData])
+    // );
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const hasChanges = useCallback(() => {
       const currentIdealTemp = Number(idealTemperature);
@@ -135,8 +133,6 @@ const SettingsScreen = () => {
                 style: 'destructive',
                 onPress: () => {
                   revertChanges();
-                  // Optional: Force navigate if needed
-                  // navigation.navigate('Home');
                 }
               }
             ]
