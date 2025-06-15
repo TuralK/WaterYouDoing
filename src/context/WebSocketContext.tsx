@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { WEBSOCKET_URL } from '@env';
 import uuid from 'react-native-uuid';
 import PushNotification from 'react-native-push-notification';
 import { SensorData } from '../types/types';
@@ -113,7 +114,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     let reconnectTimeout: NodeJS.Timeout;
 
     const connect = () => {
-      const websocket = new WebSocket('ws://localhost:3000');  //change
+      const websocket = new WebSocket(WEBSOCKET_URL);
       wsRef.current = websocket;
 
       websocket.onopen = () => {
