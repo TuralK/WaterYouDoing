@@ -16,6 +16,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { adjustmentApi } from '../api/adjustment';
 import { Adjustment } from '../types/models';
 import { useIsFocused } from '@react-navigation/native';
+import { deviceApi } from '../api/device';
+import { events } from '../events/events';
 
 
 const SettingsScreen = () => {
@@ -37,6 +39,18 @@ const SettingsScreen = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false); // To manage loading state
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false); // State for refresh control
 
+    const handleAutoClimateToggle = async (value: boolean) => {
+        const numericValue = value ? 1 : 0; // Convert boolean to 1 or 0
+        await deviceApi.updateDeviceAutomation('1', numericValue);
+        await deviceApi.updateDeviceAutomation('2', numericValue);
+        setAutoClimate(value);
+    };
+
+    const handleAutoWateringToggle = async (value: boolean) => {
+        const numericValue = value ? 1 : 0; // Convert boolean to 1 or 0
+        await deviceApi.updateDeviceAutomation('3', numericValue);
+        setAutoWatering(value);
+    };
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -46,25 +60,25 @@ const SettingsScreen = () => {
 
             const idealTempAdj = response.find(adj => adj.id === 1);
             const moistureAdj = response.find(adj => adj.id === 2);
-            const autoWateringAdj = response.find(adj => adj.id === 3);
-            const autoClimateAdj = response.find(adj => adj.id === 4);
 
             const currentIdealTemp = idealTempAdj?.value ?? 0;
             const currentMoisture = moistureAdj?.value ?? 0;
-            const currentAutoWatering = (autoWateringAdj?.value === 1);
-            const currentAutoClimate = (autoClimateAdj?.value === 1);
 
             setIdealTemperature(currentIdealTemp);
             setMoistureThreshold(currentMoisture);
-            setAutoWatering(currentAutoWatering);
-            setAutoClimate(currentAutoClimate);
 
             // Set initial values for comparison
             // Inside fetchData:
             setInitialIdealTemperature(currentIdealTemp);
             setInitialMoistureThreshold(currentMoisture);
-            setInitialAutoWatering(currentAutoWatering);
-            setInitialAutoClimate(currentAutoClimate);
+
+            const automation_response = await deviceApi.getDevices();
+            if (automation_response) {
+                setAutoClimate(automation_response[0].isAutomated === 1 ? true : false);
+                setAutoWatering(automation_response[2].isAutomated === 1 ? true : false);
+                setInitialAutoClimate(automation_response[0].isAutomated === 1 ? true : false);
+                setInitialAutoWatering(automation_response[2].isAutomated === 1 ? true : false);
+            }
 
         } catch (error) {
             console.error('Error fetching adjustment data:', error);
@@ -76,14 +90,25 @@ const SettingsScreen = () => {
         }
     }, []);
 
-    // Fetch data when the screen focuses
     // useFocusEffect(
     //     useCallback(() => {
     //         fetchData();
     //     }, [fetchData])
     // );
+
     useEffect(() => {
-        fetchData();
+      fetchData();
+      
+      const automationDisabledListener = () => {
+          fetchData();
+      };
+      
+      events.on('automationDisabled', automationDisabledListener);
+
+      return () => {
+          events.off('automationDisabled', automationDisabledListener);
+      };
+
     }, []);
 
     const hasChanges = useCallback(() => {
@@ -160,8 +185,8 @@ const SettingsScreen = () => {
             await Promise.all([
                 adjustmentApi.updateAdjustment('1', { id: 1, value: parsedIdealTemperature }),
                 adjustmentApi.updateAdjustment('2', { id: 2, value: parsedMoistureThreshold }),
-                // adjustmentApi.updateAdjustment('3', { id: 3, value: autoWatering ? 1 : 0 }),
-                // adjustmentApi.updateAdjustment('4', { id: 4, value: autoClimate ? 1 : 0 }),
+                autoClimate != initialAutoClimate ? handleAutoClimateToggle(autoClimate) : Promise.resolve(),
+                autoWatering != initialAutoWatering ? handleAutoWateringToggle(autoWatering) : Promise.resolve(),
             ]);
 
             // Inside handleSave:
@@ -175,6 +200,7 @@ const SettingsScreen = () => {
             console.error('Error saving settings:', error);
             Alert.alert('Error', 'Failed to save settings. Please try again.');
         }
+        fetchData();
     };
 
     if (isLoading && !isRefreshing) { // Show loading indicator only on initial load

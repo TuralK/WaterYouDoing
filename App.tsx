@@ -14,7 +14,6 @@ import messaging from '@react-native-firebase/messaging';
 import { configureNotifications } from './src/services/notificationService';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { ControlsProvider } from './src/context/ControlsContext';
-import AutomationHandler from './src/components/AutomationHandler';
 import CameraScreen from './src/screens/CameraScreen';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'; // Keep these imports
 
@@ -148,9 +147,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
         <ControlsProvider>
-          <AutomationHandler />
           <WebSocketProvider>
-            {/* Render the new component here */}
             <MainAppContent />
           </WebSocketProvider>
         </ControlsProvider>

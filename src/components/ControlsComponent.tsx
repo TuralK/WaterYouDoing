@@ -1,9 +1,13 @@
 // ControlsComponent.tsx (updated)
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Switch, Text, StyleSheet, Alert } from 'react-native';
 import { sendControlCommand } from '../api/mockApi';
 import { useControls } from '../context/ControlsContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { deviceApi } from '../api/device';
+import { Device } from '../types/models';
+import { useWebSocket } from '../context/WebSocketContext';
+import { events } from '../events/events';
 
 const ControlRow = ({ label, value, onValueChange, icon, color }: {
   label: string;
@@ -28,8 +32,83 @@ const ControlRow = ({ label, value, onValueChange, icon, color }: {
 
 const ControlsComponent = () => {
   const { controls, setControls } = useControls();
+  const [devices, setDevices] = useState<Device[]>([]);
+  const { heatingEnabled, coolingEnabled, wateringEnabled } = useWebSocket();
 
-   const handleControl = async (control: keyof typeof controls, value: boolean) => {
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        const response = await deviceApi.getDevices();
+        setDevices(response);
+        const updatedControls = {
+          watering: response.find(device => device.name === 'pump')?.status === 'on' || false,
+          heating: response.find(device => device.name === 'heater')?.status === 'on' || false,
+          cooling: response.find(device => device.name === 'cooler')?.status === 'on' || false,
+        };
+        setControls(updatedControls);
+      } catch (error) {
+        console.error('Error fetching devices:', error);
+      }
+    };
+    fetchDevices();
+  }, []);
+
+  useEffect(() => {
+    setControls({
+      watering: wateringEnabled,
+      heating: heatingEnabled,
+      cooling: coolingEnabled,
+    });
+  }, [wateringEnabled, heatingEnabled, coolingEnabled]);
+
+  const handleControl = async (control: keyof typeof controls, value: boolean) => {
+    let newControls = { ...controls };
+
+    // Fetch current automation status
+    try {
+      const automationResponse = await deviceApi.getDevices();
+      const isClimateAutomated = automationResponse[0]?.isAutomated === 1;
+      const isWateringAutomated = automationResponse[2]?.isAutomated === 1;
+
+      const isControlClimate = control === 'heating' || control === 'cooling';
+
+      // Check if automated
+      if (
+        (isControlClimate && isClimateAutomated) ||
+        (control === 'watering' && isWateringAutomated)
+      ) {
+        return Alert.alert(
+          'Automation Enabled',
+          `The ${control === 'watering' ? 'watering' : 'climate'} system is currently automated. Changing this manually will disable automation. Do you want to proceed?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Proceed',
+              onPress: async () => {
+                if (isControlClimate) {
+                  await deviceApi.updateDeviceAutomation('1', 0); // disable climate automation
+                } else {
+                  await deviceApi.updateDeviceAutomation('3', 0); // disable watering automation
+                }
+
+                events.emit('automationDisabled');
+                await proceedWithControlChange(control, value);
+              },
+            },
+          ]
+        );
+      } else {
+        await proceedWithControlChange(control, value);
+      }
+    } catch (error) {
+      console.error('Error handling control change:', error);
+    }
+  };
+
+   const proceedWithControlChange = async (control: keyof typeof controls, value: boolean) => {
     let newControls = { ...controls };
 
     if ((control === 'heating' || control === 'cooling') && value) {
@@ -41,8 +120,14 @@ const ControlsComponent = () => {
           `Heating and cooling cannot run simultaneously. Turning off ${otherControl} system.`,
           [{ text: 'OK' }]
         );
+        await deviceApi.turnOffDevice(otherControl === 'heating' ? '1' : '2'); // Assuming '1' is heater and '2' is cooler
         newControls[otherControl] = false;
       }
+    }
+    if(value === true) {
+      await deviceApi.turnOnDevice(control === 'heating' ? '1' : control === 'cooling' ? '2' : '3');
+    } else {
+      await deviceApi.turnOffDevice(control === 'heating' ? '1' : control === 'cooling' ? '2' : '3');
     }
 
     newControls[control] = value;

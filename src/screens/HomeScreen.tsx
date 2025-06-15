@@ -11,7 +11,8 @@ import { sensorApi } from '../api/sensor';
 import { navigate } from '../navigation/navigationRef';
 
 const HomeScreen = () => {
-  const [sensorData, setSensorData] = useState<SensorData>();
+  const { sensorData, updateSensorData } = useWebSocket();
+  // const [sensorData, setSensorData] = useState<SensorData>();
   const [refreshing, setRefreshing] = useState(false);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
   const { notifications } = useWebSocket();
@@ -22,24 +23,33 @@ const HomeScreen = () => {
       try {
         const response = await sensorApi.getSensors();
         setSensors(response);
+        const tempSensor = response.at(0);
+        const soilMoistureSensor = response.at(1);
+        if (tempSensor) {
+          updateSensorData({ temperature: tempSensor.value });
+        }
+        if (soilMoistureSensor) {
+          updateSensorData({ soilMoisture: soilMoistureSensor.value });
+        }
       } catch (error) {
         console.error('Error fetching sensor data:', error);
       } finally {
         console.log('Sensor data fetch completed');
       }
+      console.log('Sensors:', sensors);
     };
     fetchData();
   }, []);
 
 
-  const loadData = async () => {
-    setRefreshing(true);
-    const data = await fetchSensorData();
-    setSensorData(data);
-    setRefreshing(false);
-  };
+  // const loadData = async () => {
+  //   setRefreshing(true);
+  //   const data = await fetchSensorData();
+  //   setSensorData(data);
+  //   setRefreshing(false);
+  // };
 
-   useEffect(() => {
+  useEffect(() => {
     if (notifications.length > 0) {
       setLastNotification(notifications[notifications.length - 1].message);
       // Clear after 5 seconds
@@ -48,10 +58,10 @@ const HomeScreen = () => {
     }
   }, [notifications]);
 
-  useEffect(() => {
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   const interval = setInterval(loadData, 5000);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   return (
     <ScrollView
@@ -59,7 +69,7 @@ const HomeScreen = () => {
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
-          onRefresh={loadData}
+          // onRefresh={loadData}
           tintColor="#4A90E2"
         />
       }

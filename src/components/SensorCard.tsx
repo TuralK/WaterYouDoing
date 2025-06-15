@@ -23,7 +23,7 @@ const SensorCard = ({ data }: { data?: SensorData }) => (
       value={`${data?.temperature.toFixed(1)}°C`}
       color="#E74C3C"
     />
-    <StatusRow
+    {/* <StatusRow
       icon="chart-line"
       label="Plant Height"
       value={`${data?.plantHeight.toFixed(1)}cm`}
@@ -34,7 +34,7 @@ const SensorCard = ({ data }: { data?: SensorData }) => (
       label="Growth Rate"
       value={`${data?.growthRate.toFixed(2)}cm/day`}
       color="#9B59B6"
-    />
+    /> */}
   </View>
 );
 

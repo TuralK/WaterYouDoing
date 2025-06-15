@@ -11,6 +11,7 @@ export interface Notification {
   type: 'info' | 'warning' | 'alert';
   message: string;
   timestamp: number;
+  status: 'unread' | 'read'
 }
 
 export type ControlCommand = {

@@ -30,10 +30,24 @@ export interface Height {
   timestamp?: string | Date;
 }
 
-
 export interface Adjustment {
   id: number;
   adjustment_type?: string;
   value?: number;
   timestamp?: string | Date;
+}
+
+export interface Device {
+  id: number;
+  name: string;
+  status?: 'on' | 'off';
+  isAutomated?: 0 | 1;
+  sensorId?: number;
+}
+
+export interface Notification {
+  id: number;
+  message?: string;
+  timestamp: string | Date;
+  status?: 'unread' | 'read';
 }

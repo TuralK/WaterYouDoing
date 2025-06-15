@@ -1,28 +1,91 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import uuid from 'react-native-uuid';
 import PushNotification from 'react-native-push-notification';
+import { SensorData } from '../types/types';
 import { showLocalNotification } from '../services/notificationService';
+import { deviceApi } from '../api/device';
+import { notificationApi } from '../api/notification';
 
 type WebSocketContextType = {
   sendMessage: (action: string, data: any) => void;
   notifications: any[];
-  sensorData: any;
+  sensorData: SensorData;
+  heatingEnabled: boolean;
+  coolingEnabled: boolean;
+  wateringEnabled: boolean;
+  updateSensorData: (newData: Partial<SensorData>) => void;
+  refetchNotifications: () => Promise<void>;
 };
 
 const WebSocketContext = createContext<WebSocketContextType>({
   sendMessage: () => {},
   notifications: [],
-  sensorData: null,
+  sensorData: {
+    soilMoisture: 0,
+    temperature: 0,
+    plantHeight: 0,
+    growthRate: 0,
+    timestamp: '',
+  },
+  heatingEnabled: false,
+  coolingEnabled: false,
+  wateringEnabled: false,
+  updateSensorData: () => {},
+  refetchNotifications: async () => {},
 });
 
 export const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
-
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [sensorData, setSensorData] = useState<any>(null);
+  const [sensorData, setSensorData] = useState<SensorData>({
+    soilMoisture: 0,
+    temperature: 0,
+    plantHeight: 0,
+    growthRate: 0,
+    timestamp: '',
+  });
+  const updateSensorData = (newData: Partial<SensorData>) => {
+    setSensorData(prev => ({
+      ...prev,
+      ...newData,
+    }));
+  };
   const wsRef = useRef<WebSocket | null>(null);
+
+  const [heatingEnabled, setHeatingEnabled] = useState(false);
+  const [coolingEnabled, setCoolingEnabled] = useState(false);
+  const [wateringEnabled, setWateringEnabled] = useState(false);
 
   const notificationCountRef = useRef(0);
   const MAX_NOTIFICATIONS = 50;
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const fetchedNotifications = await notificationApi.getNotifications();
+      // Sort by timestamp descending to keep the list consistent
+      const sorted = fetchedNotifications.sort((a, b) => new Date(b.timestamp as string).getTime() - new Date(a.timestamp as string).getTime());
+      setNotifications(sorted.slice(0, MAX_NOTIFICATIONS));
+      notificationCountRef.current = sorted.length;
+    } catch (e) {
+      console.error('Failed to fetch notifications:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchInitialDeviceStatus = async () => {
+      try {
+        const devices = await deviceApi.getDevices();
+        setHeatingEnabled(devices.find(d => d.name === 'heater')?.status === 'on' || false);
+        setCoolingEnabled(devices.find(d => d.name === 'cooler')?.status === 'on' || false);
+        setWateringEnabled(devices.find(d => d.name === 'pump')?.status === 'on' || false);
+      } catch (e) {
+        console.error('Failed to fetch initial device states:', e);
+      }
+    };
+
+    fetchInitialDeviceStatus();
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     if (notifications.length > notificationCountRef.current) {
@@ -50,7 +113,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     let reconnectTimeout: NodeJS.Timeout;
 
     const connect = () => {
-      const websocket = new WebSocket('ws://192.168.0.152:3000');
+      const websocket = new WebSocket('ws://localhost:3000');  //change
       wsRef.current = websocket;
 
       websocket.onopen = () => {
@@ -71,14 +134,51 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
           console.log('Received message:', message);
 
           if (message.status === 'info') {
-            setNotifications(prev => [...prev, {
-              id: Date.now().toString(),
-              type: 'info',
-              message: message.message,
-              timestamp: Date.now()
-            }].slice(-MAX_NOTIFICATIONS));
-          } else if (message.sensorData) {
-            setSensorData(message.sensorData);
+            const text = message.message.toLowerCase();
+
+            if (text.includes('heater is stopped')) {
+              setHeatingEnabled(false);
+            }
+
+            if (text.includes('cooler is stopped')) {
+              setCoolingEnabled(false);
+            }
+
+            if (text.includes('pump is stopped')) {
+              setWateringEnabled(false);
+            }
+
+            if (text.includes('heater is started')) {
+              setHeatingEnabled(true);
+            }
+
+            if (text.includes('cooler is started')) {
+              setCoolingEnabled(true);
+            }
+
+            if (text.includes('pump is started')) {
+              setWateringEnabled(true);
+            }
+
+            setNotifications(prev => [
+              ...prev,
+              {
+                id: uuid.v4(),
+                type: 'info',
+                message: message.message,
+                timestamp: Date.now()
+              }
+            ].slice(-MAX_NOTIFICATIONS));
+          } else if (message.status === 'updateTemperature') {
+            setSensorData((prev) => ({
+              ...prev,
+              temperature: message.value,
+            }));
+          } else if (message.status === 'updateSoilMoisture') {
+            setSensorData((prev) => ({
+              ...prev,
+              soilMoisture: message.value,
+            }));
           }
         } catch (error) {
           console.error('JSON parse error:', error, 'Raw data:', rawData);
@@ -111,7 +211,16 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
   };
 
   return (
-    <WebSocketContext.Provider value={{ sendMessage, notifications, sensorData }}>
+    <WebSocketContext.Provider value={{
+      sendMessage,
+      notifications,
+      sensorData,
+      heatingEnabled,
+      coolingEnabled,
+      wateringEnabled,
+      updateSensorData,
+      refetchNotifications: fetchNotifications,
+    }}>
       {children}
     </WebSocketContext.Provider>
   );
