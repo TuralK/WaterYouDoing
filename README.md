@@ -1,97 +1,112 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 🌿 WaterYouDoing? – Mobile App (React Native)
 
-# Getting Started
+This is the **mobile frontend** for **WaterYouDoing?**, a smart greenhouse control and monitoring application developed for an **embedded system**. It allows users to control and monitor environmental conditions in real time via a clean mobile interface.  
+The backend repository is available at: [Ahsabar/Water-You-Doing](https://github.com/Ahsabar/Water-You-Doing)
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+---
 
-## Step 1: Start Metro
+## 📱 Features
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### ✅ Climate and Irrigation Control
+- Set thresholds for:
+  - **Soil Moisture**
+  - **Temperature**
+- Toggle **automation** for:
+  - 🌡️ Heating / Cooling system
+  - 💧 Watering system
+- Manual control for:
+  - Fan, Heater, and Water Pump  
+  _(Manual control disables automation for that specific device)_
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### 📊 Real-Time Monitoring
+- Live **temperature** and **soil moisture** values
+- Values update in **real-time via WebSocket**
+- Notifications:
+  - **WebSocket-based** alerts when app is open
+  - **Firebase Push Notifications** when app is closed
 
-```sh
-# Using npm
-npm start
+### 📷 Camera Integration
+- View **live stream** from the greenhouse
+- Take **snapshots** and **download** them
+- Change **camera resolution** dynamically
 
-# OR using Yarn
-yarn start
+---
+
+## 🔌 Technologies Used
+
+- **React Native** (Mobile App Framework)
+- **WebSocket** (Real-time communication)
+- **Firebase Cloud Messaging (FCM)** (Push notifications)
+- **Embedded System Backend** ([See here](https://github.com/Ahsabar/Water-You-Doing))
+
+---
+
+## 🚀 Getting Started
+
+🎥 Demo
+
+Watch a short video demonstration of the WaterYouDoing? embedded system + mobile app:
+
+🔗 https://www.youtube.com/shorts/G_noetGeP6k
+
+    ⚠️ Note:
+    This video shows an earlier version of the mobile app where toggles did not always reflect the automation state correctly. These issues have been fully resolved in the current version.
+
+### Prerequisites
+- Node.js ≥ 16.x
+- React Native CLI
+- Android Studio or Xcode
+- Firebase project credentials (`google-services.json` for Android)
+
+### Installation
+
+```bash
+git clone https://github.com/TuralK/WaterYouDoing.git
+cd WaterYouDoing
+npm install
+
+Run on Android
+npx react-native run-android
+
+📂 Project Structure
+WaterYouDoing-Mobile/
+│
+├── src/
+│   ├── api/           # API request logic
+│   ├── components/    # Reusable UI components
+│   ├── context/       # Global state (e.g., controls, websocket)
+│   ├── events/        # EventEmitter config
+│   ├── navigation/    # Navigation configuration (e.g., stack, tab)
+│   ├── screens/       # App screens (Home, Camera, Settings, etc.)
+│   ├── services/      # notification service
+│   ├── types/         # Type definitions (TypeScript interfaces/types)
+│   └── websocket/     # WebSocket setup and messaging logic
+│
+├── android/           # Android-specific configuration
+├── package.json
+└── README.md
 ```
 
-## Step 2: Build and run your app
+🔗 Backend Info
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+This mobile app communicates with the backend at:
 
-### Android
+➡️ https://github.com/Ahsabar/Water-You-Doing
 
-```sh
-# Using npm
-npm run android
+Backend handles:
 
-# OR using Yarn
-yarn android
-```
+    Environmental logic
 
-### iOS
+    WebSocket updates
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+    Firebase push notifications
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+    Camera streaming
 
-```sh
-bundle install
-```
+🔔 Notes
 
-Then, and every time you update your native dependencies, run:
+    Manual toggles override automation for the selected device.
 
-```sh
-bundle exec pod install
-```
+    App must be on same local network as the embedded device for live camera stream.
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+    Notifications are sent automatically when automated decisions are made.
