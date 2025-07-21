@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "45610485704",
-    "project_id": "wateryoudoing-46bde",
-    "storage_bucket": "wateryoudoing-46bde.firebasestorage.app"
+    "project_number": "451513603840",
+    "project_id": "water-you-doing",
+    "storage_bucket": "water-you-doing.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:45610485704:android:08eb24b60d269c7973e2fd",
+        "mobilesdk_app_id": "1:451513603840:android:5562457f9b65dfe13505e5",
         "android_client_info": {
           "package_name": "com.wateryoudoing_app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB7qGA0DHTPbhl-wOaEStEw_X5K7F_RkNc"
+          "current_key": "AIzaSyDk4NOhKe95laQG0iqF_GXIY8EvKZTnTmA"
         }
       ],
       "services": {

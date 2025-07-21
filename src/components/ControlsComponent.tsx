@@ -9,6 +9,9 @@ import { Device } from '../types/models';
 import { useWebSocket } from '../context/WebSocketContext';
 import { events } from '../events/events';
 
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 const ControlRow = ({ label, value, onValueChange, icon, color }: {
   label: string;
   value: boolean;
@@ -35,31 +38,54 @@ const ControlsComponent = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const { heatingEnabled, coolingEnabled, wateringEnabled } = useWebSocket();
 
-  useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        const response = await deviceApi.getDevices();
-        setDevices(response);
-        const updatedControls = {
-          watering: response.find(device => device.name === 'pump')?.status === 'on' || false,
-          heating: response.find(device => device.name === 'heater')?.status === 'on' || false,
-          cooling: response.find(device => device.name === 'cooler')?.status === 'on' || false,
-        };
-        setControls(updatedControls);
-      } catch (error) {
-        console.error('Error fetching devices:', error);
-      }
-    };
-    fetchDevices();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchDevices = async () => {
+        try {
+          const response = await deviceApi.getDevices();
+          setDevices(response);
+          const updatedControls = {
+            watering: response.find(device => device.name === 'pump')?.status === 'on' || false,
+            heating: response.find(device => device.name === 'heater')?.status === 'on' || false,
+            cooling: response.find(device => device.name === 'cooler')?.status === 'on' || false,
+          };
+          setControls(updatedControls);
+        } catch (error) {
+          console.error('Error fetching devices:', error);
+        }
+      };
 
-  useEffect(() => {
-    setControls({
-      watering: wateringEnabled,
-      heating: heatingEnabled,
-      cooling: coolingEnabled,
-    });
-  }, [wateringEnabled, heatingEnabled, coolingEnabled]);
+      const intervalId = setInterval(fetchDevices, 500);
+
+      return () => clearInterval(intervalId); // cleanup when screen loses focus
+    }, [])
+  );
+
+  // useEffect(() => {
+  //   const fetchDevices = async () => {
+  //     try {
+  //       const response = await deviceApi.getDevices();
+  //       setDevices(response);
+  //       const updatedControls = {
+  //         watering: response.find(device => device.name === 'pump')?.status === 'on' || false,
+  //         heating: response.find(device => device.name === 'heater')?.status === 'on' || false,
+  //         cooling: response.find(device => device.name === 'cooler')?.status === 'on' || false,
+  //       };
+  //       setControls(updatedControls);
+  //     } catch (error) {
+  //       console.error('Error fetching devices:', error);
+  //     }
+  //   };
+  //   fetchDevices();
+  // }, []);
+
+  // useEffect(() => {
+  //   setControls({
+  //     watering: wateringEnabled,
+  //     heating: heatingEnabled,
+  //     cooling: coolingEnabled,
+  //   });
+  // }, [wateringEnabled, heatingEnabled, coolingEnabled, setControls]);
 
   const handleControl = async (control: keyof typeof controls, value: boolean) => {
     let newControls = { ...controls };

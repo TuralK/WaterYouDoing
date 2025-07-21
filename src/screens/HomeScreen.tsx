@@ -15,7 +15,7 @@ const HomeScreen = () => {
   // const [sensorData, setSensorData] = useState<SensorData>();
   const [refreshing, setRefreshing] = useState(false);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
-  const { notifications } = useWebSocket();
+  const { notifications, sortedNotifications } = useWebSocket();
   const [sensors, setSensors] = useState<Sensor[]>([]);
   
   useEffect(() => {
@@ -50,13 +50,13 @@ const HomeScreen = () => {
   // };
 
   useEffect(() => {
-    if (notifications.length > 0) {
-      setLastNotification(notifications[notifications.length - 1].message);
+    if (sortedNotifications.length > 0) {
+      setLastNotification(sortedNotifications[0].message);
       // Clear after 5 seconds
       const timer = setTimeout(() => setLastNotification(null), 5000);
       return () => clearTimeout(timer);
     }
-  }, [notifications]);
+  }, [sortedNotifications]);
 
   // useEffect(() => {
   //   const interval = setInterval(loadData, 5000);

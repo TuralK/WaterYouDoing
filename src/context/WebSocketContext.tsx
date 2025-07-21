@@ -6,10 +6,12 @@ import { SensorData } from '../types/types';
 import { showLocalNotification } from '../services/notificationService';
 import { deviceApi } from '../api/device';
 import { notificationApi } from '../api/notification';
+import messaging from '@react-native-firebase/messaging';
 
 type WebSocketContextType = {
   sendMessage: (action: string, data: any) => void;
   notifications: any[];
+  sortedNotifications: any[];
   sensorData: SensorData;
   heatingEnabled: boolean;
   coolingEnabled: boolean;
@@ -21,6 +23,7 @@ type WebSocketContextType = {
 const WebSocketContext = createContext<WebSocketContextType>({
   sendMessage: () => {},
   notifications: [],
+  sortedNotifications: [],
   sensorData: {
     soilMoisture: 0,
     temperature: 0,
@@ -38,6 +41,7 @@ const WebSocketContext = createContext<WebSocketContextType>({
 export const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [sensorData, setSensorData] = useState<SensorData>({
     soilMoisture: 0,
     temperature: 0,
@@ -45,6 +49,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     growthRate: 0,
     timestamp: '',
   });
+
   const updateSensorData = (newData: Partial<SensorData>) => {
     setSensorData(prev => ({
       ...prev,
@@ -110,16 +115,51 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     handleNotifications();
   }, [notifications.length]);
   // Updated WebSocketProvider useEffect
+
+  // useEffect(() => {
+  //    messaging()
+  //      .getToken()
+  //      .then(token => {
+  //       setFcmToken(token);
+  //        console.log('FCM token:', token)
+  //      })
+  //      .catch(err => console.warn('FCM token error', err))
+  
+  //    return messaging().onTokenRefresh(newToken => {
+  //      console.log('FCM token refreshed:', newToken)
+  //    })
+  //  }, [])
+   
   useEffect(() => {
     let reconnectTimeout: NodeJS.Timeout;
 
-    const connect = () => {
+    const fetchFcmTokenAndConnect = async () => {
+      try {
+        const token = await messaging().getToken();
+        setFcmToken(token);
+        console.log('FCM token:', token);
+        connect(token); // ✅ pass the token directly
+      } catch (err) {
+        console.warn('FCM token error', err);
+        connect(null); // fallback if needed
+      }
+    };
+
+
+    const connect = (token: string | null) => {
       const websocket = new WebSocket(WEBSOCKET_URL);
       wsRef.current = websocket;
 
       websocket.onopen = () => {
         console.log('WebSocket connected');
         setWs(websocket);
+
+        console.log('Sending greeting message with FCM token:', token);
+        websocket.send(JSON.stringify({
+          action: 'greet',
+          message: 'mobile',
+          fcmToken: token
+        }));
       };
 
       websocket.onmessage = (event) => {
@@ -145,7 +185,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
               setCoolingEnabled(false);
             }
 
-            if (text.includes('pump is stopped')) {
+            if (text.includes('water pump is stopped')) {
               setWateringEnabled(false);
             }
 
@@ -157,7 +197,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
               setCoolingEnabled(true);
             }
 
-            if (text.includes('pump is started')) {
+            if (text.includes('water pump is started')) {
               setWateringEnabled(true);
             }
 
@@ -188,7 +228,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
       websocket.onclose = () => {
         console.log('WebSocket disconnected. Reconnecting in 2 seconds...');
-        reconnectTimeout = setTimeout(connect, 2000);
+        reconnectTimeout = setTimeout(fetchFcmTokenAndConnect, 2000);
       };
 
       websocket.onerror = (error) => {
@@ -197,11 +237,11 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
       };
     };
 
-    connect();
+    fetchFcmTokenAndConnect();
 
     return () => {
       clearTimeout(reconnectTimeout);
-      wsRef.current?.close(); // Close the active socket on cleanup
+      wsRef.current?.close();
     };
   }, []);
 
@@ -213,6 +253,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
   return (
     <WebSocketContext.Provider value={{
+      sortedNotifications: notifications.sort((a, b) => new Date(b.timestamp as string).getTime() - new Date(a.timestamp as string).getTime()),
       sendMessage,
       notifications,
       sensorData,

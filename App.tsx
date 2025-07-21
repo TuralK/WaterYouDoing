@@ -10,7 +10,7 @@ import { StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { navigationRef } from './src/navigation/navigationRef';
 import {PermissionsAndroid} from 'react-native';
-import messaging from '@react-native-firebase/messaging';
+// import messaging from '@react-native-firebase/messaging';
 import { configureNotifications } from './src/services/notificationService';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { ControlsProvider } from './src/context/ControlsContext';
@@ -130,19 +130,6 @@ export default function App() {
     configureNotifications();
     PushNotification.setApplicationIconBadgeNumber(0);
   }, []);
-
-  useEffect(() => {
-    messaging()
-      .getToken()
-      .then(token => {
-        console.log('FCM token:', token)
-      })
-      .catch(err => console.warn('FCM token error', err))
-
-    return messaging().onTokenRefresh(newToken => {
-      console.log('FCM token refreshed:', newToken)
-    })
-  }, [])
 
   return (
     <SafeAreaProvider>
